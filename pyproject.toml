@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "djira"
+version = "0.1.0"
+description = "djira is a websocket extension for drf using socketio"
+authors = ["Oguntunde Caleb Fiyinfoluwa <oasis.mystre@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+Django = "^4.2.2"
+python-socketio = "^5.8.0"
+djangorestframework = "^3.14.0"
+daphne = "^4.0.0"
+dj-url-filter = "^0.4.4"
+
+[tool.poetry.dev-dependencies]
+python-socketio = {extras = ["client"], version = "^5.8.0"}
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
