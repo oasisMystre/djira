@@ -19,7 +19,7 @@ pip install djira
 ```
 
 update your `settings.py` config
-```json
+```py
 INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
@@ -194,7 +194,7 @@ DJIRA_SETTINGS = {}
 ###  SOCKET_INSTANCE
 This override the default socketio instance, import module string 
 
-```json
+```py
 DJIRA_SETTINGS = {
     "SOCKET_INSTANCE": "example.socket.sio",
 }
@@ -208,7 +208,7 @@ Extend from djira `BaseAuthentication` Class to implement your own authenticatio
 
 Jira has a extend authentication class from `rest_framework.authentication`
 
-```json
+```py
 DJIRA_SETTINGS = {
     "AUTHENTICATION_CLASSES": ["jira.authentication.TokenAuthentication"],
 }
@@ -239,7 +239,7 @@ class AllowAny(BasePermission):
 
 In your `settings.py` update or add your permission class
 
-```json
+```py
 DJIRA_SETTINGS = {
     "PERMISSION_CLASSES": ["jira.permissions.AllowAny"]
 }
@@ -263,7 +263,7 @@ class ScopeInterceptorMiddleware:
 
 In your `settings.py` add or update your middleware class 
 
-```json
+```py
 DJIRA_SETTINGS = {
     "MIDDLEWARE_CLASSES": ["example.middlewares.ScopeInterceptorMiddleware"]
 }
@@ -284,7 +284,7 @@ class LimitOffsetPagination(BasePagination):
 
 In your `settings.py` add or update your default pagination class
 
-```json
+```py
 DJIRA_SETTINGS = {
     "DEFAULT_PAGINATION_CLASS": "example.pagination.LimitOffsetPagination",
 }
@@ -294,7 +294,7 @@ DJIRA_SETTINGS = {
 
 Set your page size 
 
-```json
+```py
 DJIRA_SETTINGS = {
     "PAGE_SIZE": 16,
 } # default
