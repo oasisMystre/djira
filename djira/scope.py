@@ -4,6 +4,8 @@ from typing import Any, Dict, Literal
 from django.http import QueryDict
 from django.contrib.auth.models import User, AnonymousUser
 
+from djira.typing import Method
+
 
 class Scope:
     def __init__(
@@ -20,7 +22,7 @@ class Scope:
 
     @property
     def request_id(self):
-        return self._raw_data.get("requestId", time().isoformat)
+        return self._raw_data.get("requestId", time().isoformat())
 
     @property
     def sid(self):
@@ -39,12 +41,12 @@ class Scope:
         return self._user
 
     @property
-    def action(self) -> Literal["list", "retrieve", "update"]:
+    def action(self) -> str:
         return self._raw_data.get("action")
 
     @property
-    def method(self) -> Literal["request", "subcribe", "stream"]:
-        return self._raw_data.get("method", "request")
+    def method(self) -> Method:
+        return self._raw_data.get("method", "GET")
 
     @property
     def data(self):

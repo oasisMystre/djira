@@ -15,14 +15,16 @@ class Consumer:
     from djira.hooks import APIHook
 
     _hooks: Dict[str, "APIHook"] = {}
-    _user: Dict[str, User or AnonymousUser] = {}
+    _users: Dict[str, User or AnonymousUser] = {}
 
     authentication_classes = jira_settings.AUTHENTICATION_CLASSES
+    middleware_classes = jira_settings.MIDDLEWARE_CLASSES
 
     def __init__(self, server: Server):
         self.server = server
 
     def register(self, namespace: str, api_hook: Any):
+        setattr(api_hook, "namespace", namespace)
         self._hooks[namespace] = api_hook
 
     @property
@@ -35,6 +37,9 @@ class Consumer:
             for authentication_class in self.authentication_classes
         ]
 
+    def get_middleware_classes(self):
+        return [middleware_class() for middleware_class in self.middleware_classes]
+
     @property
     def authenticators(self):
         if not hasattr(self, "_authenticators"):
@@ -42,10 +47,17 @@ class Consumer:
 
         return self._authenticators
 
+    @property
+    def middlewares(self):
+        if not hasattr(self, "_middlewares"):
+            self._middlewares = self.get_middleware_classes()
+
+        return self._middlewares
+
     def start(self):
         @self.server.event
         async def connect(sid: str, environ: dict, auth: dict):
-            self._user[sid] = AnonymousUser()
+            self._users[sid] = AnonymousUser()
 
             for authenticator in self.authenticators:
                 if not auth:
@@ -54,7 +66,7 @@ class Consumer:
                 user = await authenticator.authenticate(sid, auth)
 
                 if user:
-                    self._user[sid] = user
+                    self._users[sid] = user
                 else:
                     raise ConnectionRefusedError()
 
@@ -62,17 +74,21 @@ class Consumer:
 
             @self.server.on(namespace)
             async def on_event(sid: str, data: dict):
-                print(data)
                 scope = Scope(
                     sid,
                     namespace,
                     data,
-                    self._user[sid],
+                    self._users[sid],
                 )
 
-                await self._hooks[namespace]()(scope).handle_action()
+                for middleware in self.middlewares:
+                    middleware(scope)
+
+                hook = self._hooks[namespace](self)(scope)
+
+                await hook.handle_action()
 
         @self.server.event
         def disconnect(sid: str):
-            if sid in self._user:
-                del self._user[sid]
+            if sid in self._users:
+                del self._users[sid]

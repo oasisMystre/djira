@@ -7,9 +7,9 @@ from djira.scope import Scope
 
 
 class Action(Enum):
-    CREATE = "create"
-    UPDATE = "update"
-    DELETE = "delete"
+    CREATE = "added"
+    UPDATE = "modified"
+    DELETE = "removed"
 
 
 class BaseObserver:
@@ -26,8 +26,9 @@ class BaseObserver:
             body = {"pk": instance.pk}
 
         return dict(
-            method="subcription",
-            action=action.value,
+            method="SUBSCRIPTION",
+            action=self.action,
+            type=action.value,
             data=body,
         )
 
@@ -48,6 +49,10 @@ class BaseObserver:
         """
         This should be called to subscribe the current hook.
         """
+        if not hasattr(self, "namespace"):
+            setattr(self, "action", scope.action)
+            setattr(self, "namespace", scope.namespace)
+
         if hasattr(self, "_subscribing_rooms"):
             subscribing_rooms = self._subscribing_rooms(self, scope)
 

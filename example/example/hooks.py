@@ -1,11 +1,14 @@
 from django.contrib.auth import get_user_model
 
+from rest_framework import status
+
 from djira.hooks import ModelAPIHook
 
 from djira.decorators import action
 
 from djira.observer import observer
 from djira.observer.base_observer import Action
+
 from djira.scope import Scope
 
 from .serializers import UserSerializer
@@ -29,9 +32,11 @@ class UserAPIHook(ModelAPIHook):
     def user_subsribing_rooms(self, scope: Scope):
         yield "%s_%s" % (self.model_name, scope.user.id)
 
-    @action()
+    @action(methods=["SUBSCRIPTION"])
     async def subscribe_user(self):
         """
         check permission here
         """
         await self.user_observer.subscribe(self.scope)
+
+        return self.emit({})

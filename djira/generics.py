@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal, Tuple
 
 from socketio import AsyncServer
 
@@ -26,18 +26,28 @@ class APIHookMetaclass(type):
     def __new__(mcs, name, bases, body):
         cls = type.__new__(mcs, name, bases, body)
 
-        cls.available_actions = {}
+        cls.available_methods = {}
+        whitelists = {
+            "create": ["POST"],
+            "list": ["GET"],
+            "retrieve": ["GET"],
+            "update": ["PUT", "PATCH"],
+            "destroy": ["DELETE"],
+        }
 
         for method_name in dir(cls):
             attr = getattr(cls, method_name)
             kwargs = getattr(attr, "kwargs", {})
-            is_action = kwargs.get("action", False)
+            is_action = getattr(attr, "action", False)
 
-            actions = kwargs.pop("actions", [])
+            methods = kwargs.pop("methods", [])
             name = kwargs.pop("name", method_name)
 
             if is_action:
-                cls.available_actions[name] = actions
+                cls.available_methods[name] = methods
+
+            if method_name in dict.keys(whitelists):
+                cls.available_methods[method_name] = whitelists[method_name]
 
         return cls
 
@@ -45,9 +55,10 @@ class APIHookMetaclass(type):
 class BaseAPIHook(metaclass=APIHookMetaclass):
     """ """
 
-    def __init__(self, server: AsyncServer | None = None, **kwargs):
-        self.kwargs = kwargs
-        self.server = server or jira_settings.SOCKET_INSTANCE
+    def __init__(self, context, server: AsyncServer | None = None, **kwargs):
+        self._kwargs = kwargs
+        self._context = context
+        self._server = server or jira_settings.SOCKET_INSTANCE
 
     def __call__(self, scope: Scope):
         self.scope = scope
@@ -94,27 +105,26 @@ class BaseAPIHook(metaclass=APIHookMetaclass):
 
     async def handle_action(self):
         action = self.scope.action
-        namespace = self.scope.namespace
+        method = self.scope.method
 
-        if namespace in self.available_actions:
-            actions = self.available_actions[namespace]
+        if action in self.available_methods:
+            methods = self.available_methods[action]
 
-            if action in actions:
+            if method in methods:
                 if hasattr(self, self.scope.action):
-                    await getattr(self, namespace)()
+                    await (await getattr(self, action)())
             else:
                 self.action_not_allowed()
         else:
-            return NotFound(
-                "%s event don't have a namespace named %s" % (action, namespace)
-            )
+            # todo
+            return NotFound("%s event don't have a action named %s" % (action, action))
 
     def action_not_allowed(self):
         """
         If `scope.action` does not correspond to a handler actions,
         determine what kind of exception to raise.
         """
-        raise MethodNotAllowed(self.scope.action)
+        raise MethodNotAllowed(self.scope.method)
 
     def permission_denied(self, message: str = None, code: int = None):
         """
@@ -249,4 +259,3 @@ class GenericAPIHook(BaseAPIHook):
 
         # Ensure querset is re-eveluate on each request
         return queryset.all() if isinstance(queryset, QuerySet) else queryset
-

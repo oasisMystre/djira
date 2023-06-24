@@ -1,5 +1,7 @@
 from typing import Callable, Iterator, TypeVar
 
+from functools import partial
+
 from asgiref.sync import async_to_sync
 
 from django.db.models import Model, QuerySet
@@ -19,7 +21,6 @@ class ModelObserver(BaseObserver):
     def __init__(
         self,
         sender: Model,
-        func: Callable = None,
         serializer_class: Serializer | None = None,
         server: AsyncServer | None = None,
     ):
@@ -43,10 +44,10 @@ class ModelObserver(BaseObserver):
     def _dispatcher(self, data, rooms: Iterator[str] | None):
         if hasattr(self, "_func"):
             return self._func(data, rooms)
-
+            
         for room in rooms:
             async_to_sync(self._server.emit)(
-                self.model_name,
+                self.namespace,
                 data,
                 room=room,
             )  # emit to certain rooms subscribe
@@ -64,20 +65,13 @@ class ModelObserver(BaseObserver):
 
     def _post_delete_receiver(self, instance: T, **kwargs):
         self._dispatcher(
-            self._serialize("delete", instance),
+            self._serialize(Action.DELETE, instance),
             self._rooms(instance, Action.DELETE),
         )
 
     def rooms(self, func: Callable[[QuerySet, Action], Iterator]):
-        self._rooms_f = func
-
+        self._rooms = partial(func, self)
         return self
-
-    def _rooms(self, instance: QuerySet, action: Action):
-        if hasattr(self, "_rooms_f"):
-            return self._rooms_f(self, instance, action)
-
-        yield self.model_name
 
     @property
     def model_name(self):

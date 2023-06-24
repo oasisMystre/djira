@@ -1,11 +1,13 @@
-from typing import Callable, Coroutine, List, Literal
+from typing import Callable, Coroutine, List
 
 from asgiref.sync import iscoroutinefunction, sync_to_async
+
+from djira.typing import Method
 
 
 def action(
     name: str = None,
-    actions: List[Literal["get", "post", "put", "patch", "subscription"]] = ["get"],
+    methods: List[Method] = ["GET"],
 ):
     """
     args:
@@ -24,9 +26,10 @@ def action(
 
         # kwargs
         setattr(
+            func,
             "kwargs",
             {
-                "methods": actions,
+                "methods": methods,
             },
         )
 

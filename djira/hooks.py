@@ -14,6 +14,7 @@ from .mixins import (
     ListModelMixin,
     RetrieveModelMixin,
     UpdateModelMixin,
+    DestroyModelMixin,
 )
 
 
@@ -51,10 +52,11 @@ class APIHook(GenericAPIHook):
         scope = self.scope
         room_id = room_id or scope.sid
 
-        return async_to_sync(self.server.emit)(
+        return self._server.emit(
             self.scope.namespace,
             {
                 "status": status,
+                "method": scope.method,
                 "action": scope.action,
                 "requestId": scope.request_id,
                 "data": data,
@@ -76,5 +78,6 @@ class ModelAPIHook(
     ListModelMixin,
     RetrieveModelMixin,
     UpdateModelMixin,
+    DestroyModelMixin,
 ):
     serializer_class: ModelSerializer = None

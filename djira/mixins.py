@@ -90,13 +90,13 @@ class DestroyModelMixin:
     """Delete model mixin"""
 
     @action()
-    def delete(self):
+    def destroy(self):
         """Retrieve action."""
 
         instance = self.get_object()
 
-        self.perform_delete(instance)
+        self.perform_destroy(instance)
         return self.emit(None, status.HTTP_204_NO_CONTENT)
 
-    def perform_delete(self, instance):
+    def perform_destroy(self, instance):
         instance.delete()
