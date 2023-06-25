@@ -106,6 +106,7 @@ class BaseAPIHook(metaclass=APIHookMetaclass):
     async def handle_action(self):
         action = self.scope.action
         method = self.scope.method
+        namespace = self.scope.namespace
 
         if action in self.available_methods:
             methods = self.available_methods[action]
@@ -114,14 +115,15 @@ class BaseAPIHook(metaclass=APIHookMetaclass):
                 if hasattr(self, self.scope.action):
                     await (await getattr(self, action)())
             else:
-                self.action_not_allowed()
+                self.method_not_allowed()
         else:
-            # todo
-            return NotFound("%s event don't have a action named %s" % (action, action))
+            return NotFound(
+                "%s namespace don't have a action named %s" % (namespace, action)
+            )
 
-    def action_not_allowed(self):
+    def method_not_allowed(self):
         """
-        If `scope.action` does not correspond to a handler actions,
+        If `scope.method` does not correspond to a handler methods,
         determine what kind of exception to raise.
         """
         raise MethodNotAllowed(self.scope.method)

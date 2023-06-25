@@ -3,7 +3,11 @@ from typing import Any, Dict, List
 from socketio import Server
 from socketio.exceptions import ConnectionRefusedError
 
+from django.http import Http404
 from django.contrib.auth.models import User, AnonymousUser
+
+from rest_framework import status
+from rest_framework.exceptions import APIException
 
 from djira.authentication import BaseAuthentication
 
@@ -86,7 +90,15 @@ class Consumer:
 
                 hook = self._hooks[namespace](self)(scope)
 
-                await hook.handle_action()
+                try:
+                    await hook.handle_action()
+                except APIException as error:
+                    await hook.emit(
+                        error.get_full_details(),
+                        status=error.status_code,
+                    )
+                except Http404 as error:
+                    await hook.emit("Not found", status.HTTP_404_NOT_FOUND)
 
         @self.server.event
         def disconnect(sid: str):

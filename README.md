@@ -4,11 +4,6 @@ https://github.com/https://github.com/https://github.com/
 
 For javascript/typescript client check [jira](https://github.com/typenonnull/jira/)
 
-## The creator of this library is in dire need of a job
-
-[Telphone Number](tel:+2349076931902)
-
-[Email address](typenonnull@proton.me)
 
 ## Getting started 
 
@@ -126,9 +121,9 @@ class UserAPIHook(ModelAPIHook):
     # send a request to this endpoint to subscribe to user_subscriber 
     """
     >>> import { subscribe } from "jira";
-    >>> subscribe("users", { namespace: "subscribe" }, console.log);
+    >>> subscribe("users", { namespace: "subscribe_user" }, console.log);
     """
-    @action(actions=["subscription"])
+    @action(methods=["SUBSCRIPTION"])
     async def subscribe_user(self, scope: Scope):
         await user_subscriber.subscribe(scope)
 
