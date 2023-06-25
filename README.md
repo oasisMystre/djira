@@ -1,9 +1,8 @@
 # Djira 
-https://github.com/https://github.com/https://github.com/
-> Create a websocket api server quickly with ready made api consumer 
 
-For javascript/typescript client check [jira](https://github.com/typenonnull/jira/)
+Create a websocket api server quickly with ready made api consumer 
 
+For javascript/typescript client check [jira](https://github.com/oasisMystre/jira)
 
 ## Getting started 
 
