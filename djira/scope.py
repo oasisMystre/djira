@@ -20,6 +20,9 @@ class Scope:
         self._user = user or AnonymousUser()
         self._raw_data = raw_data
 
+    def __getattr__(self, __name: str) -> Any:
+        return self._raw_data[__name]
+
     @property
     def request_id(self):
         return self._raw_data.get("requestId", time().isoformat())
