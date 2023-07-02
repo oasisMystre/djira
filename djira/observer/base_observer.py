@@ -19,7 +19,7 @@ class BaseObserver:
         body = {}
 
         if hasattr(self, "_serializer"):
-            body = self._serializer(instance, action)
+            body = self._serializer(self, instance, action)
         elif self._serializer_class:
             body = self._serializer_class(instance).data
         else:

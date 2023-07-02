@@ -1,5 +1,7 @@
 from typing import Any, Dict, List
 
+from asgiref.sync import sync_to_async
+
 from socketio import Server
 from socketio.exceptions import ConnectionRefusedError
 
@@ -86,7 +88,7 @@ class Consumer:
                 )
 
                 for middleware in self.middlewares:
-                    middleware(scope)
+                    await sync_to_async(middleware)(scope) 
 
                 hook = self._hooks[namespace](self)(scope)
 
