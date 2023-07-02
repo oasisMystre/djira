@@ -81,11 +81,11 @@ class ModelObserver(BaseObserver):
 def observer(
     sender: Model,
     override: bool = False,
-    serializer: Serializer = None,
+    serializer_class: Serializer = None,
     server: AsyncServer = None,
 ):
     def _decorator(func):
-        model_observer = ModelObserver(sender, serializer, server)
+        model_observer = ModelObserver(sender, serializer_class, server)
 
         if override:
             setattr(model_observer, "_func", func)
