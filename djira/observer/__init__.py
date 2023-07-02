@@ -4,11 +4,12 @@ from functools import partial
 
 from asgiref.sync import async_to_sync
 
+from socketio import AsyncServer
+
 from django.db.models import Model, QuerySet
 from django.db.models.signals import post_save, post_delete
 
 from rest_framework.serializers import Serializer
-from socketio import AsyncServer
 
 from djira.settings import jira_settings
 
@@ -21,8 +22,8 @@ class ModelObserver(BaseObserver):
     def __init__(
         self,
         sender: Model,
-        serializer_class: Serializer | None = None,
-        server: AsyncServer | None = None,
+        serializer_class: Serializer = None,
+        server: AsyncServer = None,
     ):
         self._sender = sender
         self._serializer_class = serializer_class
@@ -44,7 +45,7 @@ class ModelObserver(BaseObserver):
     def _dispatcher(self, data, rooms: Iterator[str] | None):
         if hasattr(self, "_func"):
             return self._func(data, rooms)
-            
+
         for room in rooms:
             async_to_sync(self._server.emit)(
                 self.namespace,
