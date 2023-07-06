@@ -50,8 +50,10 @@ class BaseObserver:
         This should be called to subscribe the current hook.
         """
         if not hasattr(self, "namespace"):
-            setattr(self, "action", scope.action)
             setattr(self, "namespace", scope.namespace)
+
+        if not hasattr(self, "action"):
+            setattr(self, "action", scope.action)
 
         if hasattr(self, "_subscribing_rooms"):
             subscribing_rooms = self._subscribing_rooms(self, scope)

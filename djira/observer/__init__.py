@@ -85,7 +85,7 @@ def observer(
     serializer_class: Serializer = None,
     server: AsyncServer = None,
 ):
-    def _decorator(func):
+    def _decorator(func=None):
         model_observer = ModelObserver(sender, serializer_class, server)
 
         if override:

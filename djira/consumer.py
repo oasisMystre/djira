@@ -20,6 +20,7 @@ from .settings import jira_settings
 class Consumer:
     from djira.hooks import APIHook
 
+    _sids: Dict[int, str] = {}
     _hooks: Dict[str, "APIHook"] = {}
     _users: Dict[str, User or AnonymousUser] = {}
 
@@ -32,6 +33,19 @@ class Consumer:
     def register(self, namespace: str, api_hook: Any):
         setattr(api_hook, "namespace", namespace)
         self._hooks[namespace] = api_hook
+
+    @property
+    def sids(self):
+        return self._sids
+
+    @property
+    def users(self):
+        return self._users
+
+    def get_user(self, id: int):
+        sid = self._sids.get(id)
+
+        return self._users.get(sid)
 
     @property
     def namespaces(self):
@@ -73,13 +87,16 @@ class Consumer:
 
                 if user:
                     self._users[sid] = user
+                    self._sids[user.id] = sid
                 else:
                     raise ConnectionRefusedError()
 
-        for namespace in self.namespaces:
+            self.server.emit(f"user_data_{user.id}", {"online": True}, skip_sid=sid)
 
-            @self.server.on(namespace)
-            async def on_event(sid: str, data: dict):
+        for event in self.namespaces:
+            # To prevent closure assign namespace=event
+            @self.server.on(event)
+            async def on_event(sid: str, data: dict, namespace=event):
                 scope = Scope(
                     sid,
                     namespace,
@@ -88,7 +105,7 @@ class Consumer:
                 )
 
                 for middleware in self.middlewares:
-                    await sync_to_async(middleware)(scope) 
+                    await sync_to_async(middleware)(scope)
 
                 hook = self._hooks[namespace](self)(scope)
 
@@ -105,4 +122,14 @@ class Consumer:
         @self.server.event
         def disconnect(sid: str):
             if sid in self._users:
-                del self._users[sid]
+                # broadcast user leave to subscriing listeners to this event
+                user = self._users[sid]
+                self.server.emit(
+                    f"user_data_{user.id}", {"online": False}, skip_sid=sid
+                )
+
+                try:
+                    del self._sids[user.id]
+                    del self._users[sid]
+                except KeyError as error:
+                    pass
