@@ -16,13 +16,15 @@ from djira.authentication import BaseAuthentication
 from .scope import Scope
 from .settings import jira_settings
 
+from .models import Realtime
+
 
 class Consumer:
     from djira.hooks import APIHook
 
     _sids: Dict[int, str] = {}
     _hooks: Dict[str, "APIHook"] = {}
-    _users: Dict[str, User or AnonymousUser] = {}
+    _realtimes: Dict[str, Realtime] = {}
 
     authentication_classes = jira_settings.AUTHENTICATION_CLASSES
     middleware_classes = jira_settings.MIDDLEWARE_CLASSES
@@ -39,13 +41,22 @@ class Consumer:
         return self._sids
 
     @property
-    def users(self):
-        return self._users
+    def users(self) -> List[User | AnonymousUser]:
+        return list(map(lambda realtime: realtime.user, self._realtimes))
+
+    @property
+    def realtime_users(self):
+        return self._realtimes
+
+    def get_realtime_user(self, sid: str):
+        return self._realtimes.get(sid)
 
     def get_user(self, id: int):
         sid = self._sids.get(id)
 
-        return self._users.get(sid)
+        realtime = self._realtimes.get(sid)
+
+        return realtime.user if realtime else None
 
     @property
     def namespaces(self):
@@ -77,8 +88,6 @@ class Consumer:
     def start(self):
         @self.server.event
         async def connect(sid: str, environ: dict, auth: dict):
-            self._users[sid] = AnonymousUser()
-
             for authenticator in self.authenticators:
                 if not auth:
                     raise ConnectionRefusedError("auth required in client request")
@@ -86,12 +95,15 @@ class Consumer:
                 user = await authenticator.authenticate(sid, auth)
 
                 if user:
-                    self._users[sid] = user
-                    self._sids[user.id] = sid
+                    realtime, created = Realtime.objects.get_or_create(user=user)
+                    realtime.sid = sid
+                    realtime.is_online = True
+                    realtime.save(update_fields=["sid", "is_online"])
+
+                    self._realtimes[sid] = realtime
+
                 else:
                     raise ConnectionRefusedError()
-
-            self.server.emit(f"user_data_{user.id}", {"online": True}, skip_sid=sid)
 
         for event in self.namespaces:
             # To prevent closure assign namespace=event

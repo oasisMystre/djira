@@ -7,7 +7,7 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-Django = "^4.2.2"
+Django = "^4.2.3"
 python-socketio = "^5.8.0"
 djangorestframework = "^3.14.0"
 daphne = "^4.0.0"
