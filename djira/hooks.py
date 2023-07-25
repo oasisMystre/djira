@@ -48,7 +48,7 @@ class APIHook(GenericAPIHook):
     def paginate_response(self, data):
         return self.paginator.paginate_response(data)
 
-    def emit(self, data: dict, status=200, room_id: str | None = None):
+    def emit(self, data: dict = None, status=200, room_id: str | None = None):
         scope = self.scope
         room_id = room_id or scope.sid
 

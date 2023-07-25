@@ -133,15 +133,8 @@ class Consumer:
 
         @self.server.event
         def disconnect(sid: str):
-            if sid in self._users:
-                # broadcast user leave to subscriing listeners to this event
-                user = self._users[sid]
-                self.server.emit(
-                    f"user_data_{user.id}", {"online": False}, skip_sid=sid
-                )
-
+            if sid in self._realtimes:
                 try:
-                    del self._sids[user.id]
-                    del self._users[sid]
+                    del self._realtimes[sid]
                 except KeyError as error:
                     pass

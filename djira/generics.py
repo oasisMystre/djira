@@ -1,3 +1,5 @@
+from asyncio import iscoroutine
+from inspect import getmembers
 from typing import Any, Dict, List, Literal, Tuple
 
 from socketio import AsyncServer
@@ -18,6 +20,17 @@ from djira.scope import Scope
 from djira.settings import jira_settings
 
 
+def _is_extra_action(attr):
+    return hasattr(attr, "action")
+
+
+async def resolve(object):
+    if not iscoroutine(object):
+        return object
+
+    return resolve(await object)
+
+
 class APIHookMetaclass(type):
     """
     Metaclass that records action methods
@@ -26,34 +39,19 @@ class APIHookMetaclass(type):
     def __new__(mcs, name, bases, body):
         cls = type.__new__(mcs, name, bases, body)
 
-        cls.available_methods = {}
-        whitelists = {
-            "create": ["POST"],
-            "list": ["GET"],
-            "retrieve": ["GET"],
-            "update": ["PUT", "PATCH"],
-            "destroy": ["DELETE"],
-        }
+        if not hasattr(cls, "available_methods"):
+            cls.available_methods = {}
 
-        for method_name in dir(cls):
-            attr = getattr(cls, method_name)
-            kwargs = getattr(attr, "kwargs", {})
-            is_action = getattr(attr, "action", False)
-
-            methods = kwargs.pop("methods", [])
-            name = kwargs.pop("name", method_name)
-
-            if is_action:
-                cls.available_methods[name] = methods
-
-            if method_name in dict.keys(whitelists):
-                cls.available_methods[method_name] = whitelists[method_name]
+        for name, method in getmembers(cls, _is_extra_action):
+            cls.available_methods[name] = method.methods
 
         return cls
 
 
 class BaseAPIHook(metaclass=APIHookMetaclass):
-    """ """
+    """
+    Base  APIHook implemetation
+    """
 
     def __init__(self, context, server: AsyncServer | None = None, **kwargs):
         self._kwargs = kwargs
@@ -104,6 +102,10 @@ class BaseAPIHook(metaclass=APIHookMetaclass):
                 )
 
     async def handle_action(self):
+        """
+        To prevent client from calling methods not marked as action, we  keep list of allowed actions
+        """
+
         action = self.scope.action
         method = self.scope.method
         namespace = self.scope.namespace
@@ -113,7 +115,7 @@ class BaseAPIHook(metaclass=APIHookMetaclass):
 
             if method in methods:
                 if hasattr(self, self.scope.action):
-                    await (await getattr(self, action)())
+                    await resolve(getattr(self, action)())
             else:
                 self.method_not_allowed()
         else:

@@ -56,7 +56,7 @@ class SignalObserver(BaseObserver):
         Dipatch event to all subscribing clients
         """
 
-        rooms = self._rooms(action, instance)
+        rooms = self._rooms(action=action, instance=instance, **kwargs)
 
         for room in rooms:
             scopes = self.get_participants(room)
@@ -66,9 +66,9 @@ class SignalObserver(BaseObserver):
                     instance=instance,
                     scope=scope,
                     data=self.serialize(
-                        action,
-                        instance,
-                        build_context_from_scope(scope),
+                        action=action,
+                        instance=instance,
+                        context=build_context_from_scope(scope),
                     )
                     ** kwargs,
                 )

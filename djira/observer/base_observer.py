@@ -73,7 +73,7 @@ class BaseObserver:
         """
 
         if room_name not in self.subscribing_scopes:
-            raise NotFound("subscriber not found")
+            raise NotFound("can't unsubscribe, subscriber not found")
 
         scopes = self.subscribing_scopes[room_name]
 

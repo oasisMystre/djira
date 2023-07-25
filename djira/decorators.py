@@ -15,24 +15,14 @@ def action(
         methods (list): allowed method list
     """
 
-    def _wrapper(func: Callable | Coroutine):
+    def wrapper(func: Callable | Coroutine):
+        func.action = True
+        func.methods = methods
+        func.__name__ = name if name else func.__name__
+
         if not iscoroutinefunction(func):
             func = sync_to_async(func)
 
-        setattr(func, "action", True)
-
-        if name:
-            func.__name__ = name
-
-        # kwargs
-        setattr(
-            func,
-            "kwargs",
-            {
-                "methods": methods,
-            },
-        )
-
         return func
 
-    return _wrapper
+    return wrapper

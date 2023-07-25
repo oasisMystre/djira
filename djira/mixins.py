@@ -5,7 +5,7 @@ from djira.decorators import action
 
 
 class CreateModelMixin:
-    @action()
+    @action(methods=["POST"])
     def create(self):
         """
         Create action.
@@ -26,7 +26,7 @@ class ListModelMixin:
     List a queryset.
     """
 
-    @action()
+    @action(methods=["GET"])
     def list(self):
         """
         List action.
@@ -45,7 +45,7 @@ class ListModelMixin:
 
 
 class RetrieveModelMixin:
-    @action()
+    @action(methods=["GET"])
     def retrieve(self):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
@@ -58,7 +58,7 @@ class UpdateModelMixin:
     Update model mixin
     """
 
-    @action()
+    @action(methods=["PUT","PATCH"])
     def update(self):
         """
         Retrieve action.
@@ -89,7 +89,7 @@ class UpdateModelMixin:
 class DestroyModelMixin:
     """Delete model mixin"""
 
-    @action()
+    @action(methods=["DELETE"])
     def destroy(self):
         """Retrieve action."""
 
