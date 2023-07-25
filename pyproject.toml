@@ -14,7 +14,7 @@ daphne = "^4.0.0"
 dj-url-filter = "^0.4.4"
 
 [tool.poetry.dev-dependencies]
-python-socketio = {extras = ["client"], version = "^5.8.0"}
+python-socketio = { extras = ["client"], version = "^5.8.0" }
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Any, Callable, TypeVar
 
 from asgiref.sync import async_to_sync
@@ -41,7 +42,7 @@ class SignalObserver(BaseObserver):
 
         def _decorator(func: Callable):
             signal.connect(
-                func,
+                partial(func, self),
                 sender=sender,
                 dispatch_uid=id(self),
             )
@@ -50,7 +51,7 @@ class SignalObserver(BaseObserver):
 
         return _decorator
 
-    def dispatcher(self, action: Action, instance: T, **kwargs):
+    def dispatch(self, action: Action, instance: T, **kwargs):
         """
         Dipatch event to all subscribing clients
         """
@@ -83,6 +84,7 @@ class SignalObserver(BaseObserver):
                 method="SUBSCRIPTION",
                 action=scope.action,
                 type=action.value,
+                requestId=scope.request_id,
                 data=data,
             ),
             to=scope.sid,

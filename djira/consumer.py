@@ -15,6 +15,7 @@ from djira.authentication import BaseAuthentication
 
 from .scope import Scope
 from .settings import jira_settings
+from .db import database_sync_to_async
 
 from .models import Realtime
 
@@ -51,9 +52,8 @@ class Consumer:
     def get_realtime_user(self, sid: str):
         return self._realtimes.get(sid)
 
-    def get_user(self, id: int):
-        sid = self._sids.get(id)
-
+    @database_sync_to_async
+    def get_user(self, sid: str):
         realtime = self._realtimes.get(sid)
 
         return realtime.user if realtime else None
@@ -95,10 +95,10 @@ class Consumer:
                 user = await authenticator.authenticate(sid, auth)
 
                 if user:
-                    realtime, created = Realtime.objects.get_or_create(user=user)
+                    realtime, created = await Realtime.objects.aget_or_create(user=user)
                     realtime.sid = sid
                     realtime.is_online = True
-                    realtime.save(update_fields=["sid", "is_online"])
+                    realtime.asave(update_fields=["sid", "is_online"])
 
                     self._realtimes[sid] = realtime
 
@@ -113,7 +113,7 @@ class Consumer:
                     sid,
                     namespace,
                     data,
-                    self._users[sid],
+                    await self.get_user(sid)
                 )
 
                 for middleware in self.middlewares:

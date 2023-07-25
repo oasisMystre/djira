@@ -86,7 +86,7 @@ class UserAPIHook(ModelAPIHook):
     queryset = User.objects.all()
     serializer = UserSerializer()
 
-    @observer(User, UserSerializer) # serializer_class is optional. Note, no context is passed to serializer
+    @model_observer(User, UserSerializer) # serializer_class is optional. Note, no context is passed to serializer
     def user_subscriber(self, data: dict, rooms: Iterator[str]):
         return None # return None to automatically send events or manually send events 
 
@@ -128,6 +128,86 @@ class UserAPIHook(ModelAPIHook):
 
 ```
 
+Another example using more concise implementation
+
+```py
+from typing import Dict, Set
+
+from django.contrib.auth import get_user_model
+from django.db.models.signals import m2m_changed
+
+from djira.decorators import action
+from djira.hooks import APIHook
+from djira.observer import observer, model_observer
+from djira.observer.base_observer import Action
+from djira.observer.model_observer import ModelObserver
+from djira.scope import Scope
+
+from .models import Publication
+
+User = get_user_model()
+
+
+class UserAPIHook(APIHook):
+    user_observer = model_observer(User)
+
+    @user_observer.serializer
+    def user_serializer(
+        cls: ModelObserver,
+        action: Action,
+        instance: User,
+        context: Dict,
+    ):
+        return dict(id=instance.id, email=instance.email)
+
+    @user_observer.rooms
+    def user_rooms(cls: ModelObserver, action: Action, instance: User):
+        yield f"user__{instance.id}"
+
+    @user_observer.subscribing_rooms
+    def subscribing_rooms(cls: ModelObserver, scope: Scope):
+        yield f"user__{scope.user.id}"
+
+    @action(methods=["SUBSCRIPTION"])
+    def subscribe(self, scope: Scope):
+        return self.user_observer.subscribe(scope)
+
+    @action(methods=["SUBSCRIPTION"])
+    def unsubscribe(self, scope: Scope):
+        return self.user_observer.unsubscribe(scope)
+
+
+class PublicationAPIHook(APIHook):
+    @observer(m2m_changed, Publication.users.through)
+    def publication_observer(
+        self: ModelObserver, action: str, **kwargs
+    ):
+        return self.dispatch(Action.UPDATE, **kwargs)
+
+    @publication_observer.serializer
+    def publication_serializer(
+        cls: ModelObserver, action: Action, instance: Publication
+    ):
+        return dict(id=instance.id, name=instance.name)
+    
+
+    @publication_observer.rooms
+    def user_rooms(cls: ModelObserver, action: Action, instance: User):
+        yield f"user__{instance.id}"
+
+    @publication_observer.subscribing_rooms
+    def subscribing_rooms(cls: ModelObserver, scope: Scope):
+        yield f"user__{scope.user.id}"
+
+    @action(methods=["SUBSCRIPTION"])
+    def subscribe(self, scope: Scope):
+        return self.publication_observer.subscribe(scope)
+
+    @action(methods=["SUBSCRIPTION"])
+    def unsubscribe(self, scope: Scope):
+        return self.publication_observer.unsubscribe(scope)
+```
+
 ## Dispatchers 
 
 This is a wrapper to `django.dispatch` module to support `server.emit` from signals 
@@ -136,7 +216,7 @@ This is a wrapper to `django.dispatch` module to support `server.emit` from sign
 from django.db.models.signals import post_save
 from django.contrib.auth import get_user_model 
 
-from djira.observers.dispatch import receiver
+from djira.observer.dispatch import receiver
 
 User = get_user_model()
 

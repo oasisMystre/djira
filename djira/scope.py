@@ -3,8 +3,9 @@ from typing import Any, Dict, Literal
 
 from django.http import QueryDict
 from django.contrib.auth.models import User, AnonymousUser
+from .models import Realtime
 
-from djira.typing import Method
+from .typing import Method
 
 
 class Scope:
@@ -13,11 +14,11 @@ class Scope:
         sid: str,
         namespace: str,
         raw_data: dict,
-        user: User | AnonymousUser = None,
+        user: User = None,
     ):
         self._sid = sid
         self._namespace = namespace
-        self._user = user or AnonymousUser()
+        self._user = user
         self._raw_data = raw_data
 
     def __getattr__(self, __name: str) -> Any:
@@ -38,6 +39,7 @@ class Scope:
     @property
     def headers(self) -> Dict[str, Any]:
         return self._raw_data.get("headers", {})
+
 
     @property
     def user(self):

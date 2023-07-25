@@ -37,7 +37,7 @@ class ModelObserver(SignalObserver):
         else:
             action = Action.UPDATE
 
-        self.dispatcher(action=action, created=created, **kwargs)
+        self.dispatch(action=action, created=created, **kwargs)
 
     def post_delete_receiver(self, **kwargs):
-        self.dispatcher(action=Action.DELETE, **kwargs)
+        self.dispatch(action=Action.DELETE, **kwargs)

@@ -2,6 +2,8 @@ from enum import Enum
 from functools import partial
 from typing import Callable, Dict, Generator, List
 
+from rest_framework.exceptions import NotFound
+
 from django.db.models import QuerySet
 
 from djira.scope import Scope
@@ -22,7 +24,7 @@ class BaseObserver:
 
     subscribing_scopes: Dict[
         str, List[Scope]
-    ] = {} # all subscribing room scopes, used as context in serializing data
+    ] = {}  # all subscribing room scopes, used as context in serializing data
 
     def serialize(self, action: Action, instance: QuerySet, context: dict):
         if hasattr(self, "_serializer"):
@@ -61,60 +63,56 @@ class BaseObserver:
         """
 
         if room_name not in self.subscribing_scopes:
-            self.subscribing_scopes[room_name] = {}
+            self.subscribing_scopes[room_name] = []
 
             self.subscribing_scopes[room_name].append(scope)
-
-        return self._server.enter_room(scope.sid, room_name)
 
     def unsubscribe_scope_from_room(self, scope: Scope, room_name: str):
         """
         unsubscribe a scope from a room
         """
 
-        if room_name not in self.subscribing_rooms:
-            raise Exception
+        if room_name not in self.subscribing_scopes:
+            raise NotFound("subscriber not found")
 
         scopes = self.subscribing_scopes[room_name]
 
         indexes = [
             index
             for index, element in enumerate(scopes)
-            if element.sid == scope.sid and element.namespace == scope.namespace
+            if element.request_id == scope.request_id
         ]
 
         for index in indexes:
             scopes.remove(scopes[index])
-            self._server.leave_room(scope.sid, room_name)
 
     def get_participants(self, room_name):
         """
         Get all room participants
         """
-        print(self.subscribing_scopes)
 
         return self.subscribing_scopes.get(room_name, [])
 
-    async def subscribe(self, scope: Scope):
+    def subscribe(self, scope: Scope):
         """
         This should be called to subscribe the current hook.
         """
 
         if hasattr(self, "_subscribing_rooms"):
-            subscribing_rooms = self._subscribing_rooms(self, scope)
+            subscribing_rooms = self._subscribing_rooms(scope)
 
             for subscribing_room in subscribing_rooms:
                 return self.subscribe_scope_to_room(scope, subscribing_room)
         else:
             return self.subscribe_scope_to_room(scope, self.model_name)
 
-    async def unsubscribe(self, scope: Scope):
+    def unsubscribe(self, scope: Scope):
         """
         This should be called to unsubscribe the current hook.
         """
 
         if hasattr(self, "_subscribing_rooms"):
-            subscribing_rooms = self._subscribing_rooms(self, scope)
+            subscribing_rooms = self._subscribing_rooms(scope)
 
             for subscribing_room in subscribing_rooms:
                 self.unsubscribe_scope_from_room(scope, subscribing_room)
