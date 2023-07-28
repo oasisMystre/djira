@@ -22,10 +22,12 @@ def model_observer(
 
 def observer(
     signal: List[Signal] | Signal,
-    sender: Model,
+    sender: List[Model] | Model,
     serializer_class: Serializer = None,
     server: AsyncServer = None,
 ):
     model_observer = SignalObserver(sender, serializer_class, server)
 
-    return model_observer.connect(signal, sender)
+    return model_observer.connect(
+        signal, sender if isinstance(sender, list) else [sender]
+    )

@@ -29,8 +29,8 @@ class BaseObserver:
     def serialize(self, action: Action, instance: QuerySet, context: dict):
         if hasattr(self, "_serializer"):
             return self._serializer(self, instance, action, context)
-        elif self._serializer_class:
-            return self._serializer_class(instance, context=context).data
+        elif self.serializer_class:
+            return self.serializer_class(instance, context=context).data
 
         return {"pk": instance.pk}
 
@@ -65,7 +65,7 @@ class BaseObserver:
         if room_name not in self.subscribing_scopes:
             self.subscribing_scopes[room_name] = []
 
-            self.subscribing_scopes[room_name].append(scope)
+        self.subscribing_scopes[room_name].append(scope)
 
     def unsubscribe_scope_from_room(self, scope: Scope, room_name: str):
         """

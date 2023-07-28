@@ -101,6 +101,7 @@ class Consumer:
                     realtime.asave(update_fields=["sid", "is_online"])
 
                     self._realtimes[sid] = realtime
+                    await self.server.save_session(sid, {"environ": environ})
 
                 else:
                     raise ConnectionRefusedError()
@@ -113,7 +114,8 @@ class Consumer:
                     sid,
                     namespace,
                     data,
-                    await self.get_user(sid)
+                    await self.get_user(sid),
+                    await self.server.get_session(sid),
                 )
 
                 for middleware in self.middlewares:

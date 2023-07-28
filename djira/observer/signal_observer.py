@@ -9,6 +9,7 @@ from socketio import AsyncServer
 
 from django.db.models import Model
 
+from rest_framework import status
 from rest_framework.serializers import Serializer
 
 from djira.scope import Scope
@@ -35,17 +36,17 @@ class SignalObserver(BaseObserver):
         self.serializer_class = serializer_class
         self.server = server or jira_settings.SOCKET_INSTANCE
 
-    def connect(self, signal: Signal, sender: Any = None):
+    def connect(self, signal: Signal, senders: Any = None):
         """
         Connect receiver to sender for signal.
         """
 
         def _decorator(func: Callable):
-            signal.connect(
-                partial(func, self),
-                sender=sender,
-                dispatch_uid=id(self),
-            )
+            for sender in senders:
+                signal.connect(
+                    partial(func, self),
+                    sender=sender,
+                )
 
             return self
 
@@ -60,6 +61,7 @@ class SignalObserver(BaseObserver):
 
         for room in rooms:
             scopes = self.get_participants(room)
+
             for scope in scopes:
                 self.emitter(
                     action=action,
@@ -69,8 +71,7 @@ class SignalObserver(BaseObserver):
                         action=action,
                         instance=instance,
                         context=build_context_from_scope(scope),
-                    )
-                    ** kwargs,
+                    ),
                 )
 
     def emitter(self, action: Action, scope: Scope, data: dict, **kwargs):
@@ -84,10 +85,10 @@ class SignalObserver(BaseObserver):
                 method="SUBSCRIPTION",
                 action=scope.action,
                 type=action.value,
+                status=status.HTTP_200_OK,
                 requestId=scope.request_id,
                 data=data,
             ),
-            to=scope.sid,
         )
 
     @property

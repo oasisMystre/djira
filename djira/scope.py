@@ -1,6 +1,8 @@
 from datetime import time
 from typing import Any, Dict, Literal
 
+from urllib.parse import urljoin
+
 from django.http import QueryDict
 from django.contrib.auth.models import User, AnonymousUser
 from .models import Realtime
@@ -15,14 +17,20 @@ class Scope:
         namespace: str,
         raw_data: dict,
         user: User = None,
+        session=None,
     ):
         self._sid = sid
         self._namespace = namespace
         self._user = user
         self._raw_data = raw_data
+        self._session = session
 
     def __getattr__(self, __name: str) -> Any:
         return self._raw_data[__name]
+
+    @property
+    def environ(self):
+        return self._session["environ"]
 
     @property
     def request_id(self):
@@ -39,7 +47,6 @@ class Scope:
     @property
     def headers(self) -> Dict[str, Any]:
         return self._raw_data.get("headers", {})
-
 
     @property
     def user(self):
@@ -64,3 +71,9 @@ class Scope:
         query.update(filter)
 
         return query
+
+    def build_absolute_uri(self, url: str):
+        return urljoin(
+            f"{self.environ['wsgi.url_scheme']}://{self.environ['HTTP_HOST']}",
+            url,
+        )
