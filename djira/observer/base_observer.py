@@ -28,7 +28,7 @@ class BaseObserver:
 
     def serialize(self, action: Action, instance: QuerySet, context: dict):
         if hasattr(self, "_serializer"):
-            return self._serializer(self, instance, action, context)
+            return self._serializer(instance, action, context)
         elif self.serializer_class:
             return self.serializer_class(instance, context=context).data
 
@@ -39,7 +39,7 @@ class BaseObserver:
         The result of this method is what is sent over the socket.
         """
 
-        self._serializer = func
+        self._serializer = partial(func, self)
         return self
 
     def rooms(self, func: Callable[["BaseObserver", Action, QuerySet], Generator]):
@@ -90,7 +90,6 @@ class BaseObserver:
         """
         Get all room participants
         """
-
         return self.subscribing_scopes.get(room_name, [])
 
     def subscribe(self, scope: Scope):

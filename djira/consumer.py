@@ -98,7 +98,7 @@ class Consumer:
                     realtime, created = await Realtime.objects.aget_or_create(user=user)
                     realtime.sid = sid
                     realtime.is_online = True
-                    realtime.asave(update_fields=["sid", "is_online"])
+                    await database_sync_to_async(realtime.save)(update_fields=["sid", "is_online"])
 
                     self._realtimes[sid] = realtime
                     await self.server.save_session(sid, {"environ": environ})

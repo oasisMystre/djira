@@ -78,7 +78,6 @@ class SignalObserver(BaseObserver):
         """
         Send message to clients
         """
-
         return async_to_sync(self.server.emit)(
             scope.namespace,
             data=dict(
