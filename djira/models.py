@@ -16,7 +16,7 @@ class Realtime(models.Model):
     is_online = models.BooleanField(
         default=False,
     )
-    sid = models.UUIDField(
+    sid = models.TextField(
         null=True,
         blank=False,
     )
