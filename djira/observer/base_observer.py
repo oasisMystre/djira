@@ -117,3 +117,14 @@ class BaseObserver:
                 self.unsubscribe_scope_from_room(scope, subscribing_room)
         else:
             self.unsubscribe_scope_from_room(scope, self.model_name)
+
+    @classmethod
+    def disconnect_user(cls: "BaseObserver", sid: str):
+        """
+        Remove a subscribing scope for disconnected users
+        """
+        
+        for key, scopes in dict.items(cls.subscribing_scopes):
+            for scope in scopes:
+                if scope.sid == sid:
+                    cls.subscribing_scopes[key].remove(scope)

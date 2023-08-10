@@ -12,6 +12,8 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 
 from djira.authentication import BaseAuthentication
+from djira.observer.base_observer import BaseObserver
+
 
 from .scope import Scope
 from .settings import jira_settings
@@ -98,7 +100,9 @@ class Consumer:
                     realtime, created = await Realtime.objects.aget_or_create(user=user)
                     realtime.sid = sid
                     realtime.is_online = True
-                    await database_sync_to_async(realtime.save)(update_fields=["sid", "is_online"])
+                    await database_sync_to_async(realtime.save)(
+                        update_fields=["sid", "is_online"]
+                    )
 
                     self._realtimes[sid] = realtime
                     await self.server.save_session(sid, {"environ": environ})
@@ -138,5 +142,8 @@ class Consumer:
             if sid in self._realtimes:
                 try:
                     del self._realtimes[sid]
+
+                    # remove all subscribers for user
+                    BaseObserver.disconnect_user(sid)
                 except KeyError as error:
                     pass
