@@ -29,5 +29,5 @@ def observer(
     model_observer = SignalObserver(sender, serializer_class, server)
 
     return model_observer.connect(
-        signal, sender if isinstance(sender, (tuple, list)) else [sender]
+        signal, sender if isinstance(sender, (list, tuple)) else [sender]
     )

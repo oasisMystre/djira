@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from functools import partial
 from typing import Any, Callable, TypeVar
 
@@ -46,6 +48,7 @@ class SignalObserver(BaseObserver):
                 signal.connect(
                     partial(func, self),
                     sender=sender,
+                    dispatch_uid=uuid4(),
                 )
 
             return self
@@ -60,7 +63,12 @@ class SignalObserver(BaseObserver):
         rooms = self._rooms(action=action, instance=instance, **kwargs)
 
         for room in rooms:
+            
             scopes = self.get_participants(room)
+
+            if hasattr(self, "_participants"):
+                scopes = self._participants(scopes=scopes, instance=instance, action=action)
+                print(scopes)
 
             for scope in scopes:
                 self.emitter(
@@ -78,6 +86,7 @@ class SignalObserver(BaseObserver):
         """
         Send message to clients
         """
+
         return async_to_sync(self.server.emit)(
             scope.namespace,
             data=dict(

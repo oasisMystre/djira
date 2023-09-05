@@ -136,6 +136,11 @@ class Consumer:
                     )
                 except Http404 as error:
                     await hook.emit("Not found", status.HTTP_404_NOT_FOUND)
+                except:
+                    await hook.emit(
+                        "Server error",
+                        status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    )
 
         @self.server.event
         def disconnect(sid: str):
