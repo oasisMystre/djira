@@ -41,7 +41,7 @@ class BaseObserver:
 
         self._serializer = func
         return self
-    
+
     def participants(self, func: Callable[[List[Scope], QuerySet], List[Scope]]):
         """
         a wrapper to get room participants do exclude here
@@ -74,7 +74,6 @@ class BaseObserver:
         if room_name not in self.subscribing_scopes:
             self.subscribing_scopes[room_name] = []
 
-
         self.subscribing_scopes[room_name].append(scope)
 
     def unsubscribe_scope_from_room(self, scope: Scope, room_name: str):
@@ -92,7 +91,6 @@ class BaseObserver:
             for index, element in enumerate(scopes)
             if element.request_id == scope.request_id
         ]
-
 
         for index in indexes:
             scopes.remove(scopes[index])
@@ -129,3 +127,27 @@ class BaseObserver:
                 self.unsubscribe_scope_from_room(scope, subscribing_room)
         else:
             self.unsubscribe_scope_from_room(scope, self.model_name)
+
+    @classmethod
+    def disconnect(cls, predicate: Callable[[Scope], bool]):
+        """
+        unsubscribe using a predicate
+        ```
+        sid = "..."
+        BaseObserver.disconnect(lambda scope: scope.sid == sid)
+        ```
+        return rooms user is disconnected from
+        """
+        rooms = set()
+        for room, scopes in cls.subscribing_scopes.items():
+            scopes_to_remove = []
+            for scope in scopes:
+                if predicate(scope):
+                    scopes_to_remove.append(scope)
+                    rooms.add(room)
+
+            # Remove the scopes that match the predicate
+            for scope in scopes_to_remove:
+                scopes.remove(scope)
+
+        return rooms

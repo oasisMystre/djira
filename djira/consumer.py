@@ -149,6 +149,6 @@ class Consumer:
                     del self._realtimes[sid]
 
                     # remove all subscribers for user
-                    BaseObserver.disconnect_user(sid)
+                    BaseObserver.disconnect(lambda scope: scope.sid == sid)
                 except KeyError as error:
                     pass
