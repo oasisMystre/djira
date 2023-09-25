@@ -68,7 +68,6 @@ class SignalObserver(BaseObserver):
 
             if hasattr(self, "_participants"):
                 scopes = self._participants(scopes=scopes, instance=instance, action=action)
-                print(scopes)
 
             for scope in scopes:
                 self.emitter(
