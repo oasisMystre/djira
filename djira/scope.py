@@ -26,7 +26,12 @@ class Scope:
         self._session = session
 
     def __getattr__(self, __name: str) -> Any:
-        return self._raw_data[__name]
+        match __name:
+            case "GET":
+                return self.query
+            
+        # return None if not define    
+        return self._raw_data.get(__name)
 
     @property
     def environ(self):
