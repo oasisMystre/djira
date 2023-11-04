@@ -12,7 +12,7 @@ base_manager_signal = Signal(use_caching=True)
 
 
 class BaseManager:
-    key = "DJIRA_SOCKET_MANAGER"
+    channel_key = "DJIRA_SOCKET_MANAGER"
 
     def __init__(self):
         self._listeners: Tuple[
