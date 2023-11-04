@@ -12,6 +12,7 @@ python-socketio = "^5.8.0"
 djangorestframework = "^3.14.0"
 daphne = "^4.0.0"
 dj-url-filter = "^0.4.4"
+redis = {extras = ["hiredis"], version = "^5.0.1"}
 
 [tool.poetry.dev-dependencies]
 python-socketio = { extras = ["client"], version = "^5.8.0" }

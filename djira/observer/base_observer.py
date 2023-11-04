@@ -7,6 +7,8 @@ from rest_framework.exceptions import NotFound
 from django.db.models import QuerySet
 
 from djira.scope import Scope
+from djira.observer.manager.redis_manager import RedisManager
+from djira.settings import jira_settings
 
 
 class Action(Enum):
@@ -65,26 +67,28 @@ class BaseObserver:
 
         return self
 
-    def subscribe_scope_to_room(self, scope: Scope, room_name: str):
+    @classmethod
+    def subscribe_scope_to_room(cls, scope: Scope, room_name: str):
         """
         Subscribe client to a room,
         Todo make subscription unique to a room by `namespace`, `sid`
         """
 
-        if room_name not in self.subscribing_scopes:
-            self.subscribing_scopes[room_name] = []
+        if room_name not in cls.subscribing_scopes:
+            cls.subscribing_scopes[room_name] = []
 
-        self.subscribing_scopes[room_name].append(scope)
+        cls.subscribing_scopes[room_name].append(scope)
 
-    def unsubscribe_scope_from_room(self, scope: Scope, room_name: str):
+    @classmethod
+    def unsubscribe_scope_from_room(cls, scope: Scope, room_name: str):
         """
         unsubscribe a scope from a room
         """
 
-        if room_name not in self.subscribing_scopes:
+        if room_name not in cls.subscribing_scopes:
             raise NotFound("can't unsubscribe, subscriber not found")
 
-        scopes = self.subscribing_scopes[room_name]
+        scopes = cls.subscribing_scopes[room_name]
 
         indexes = [
             index
@@ -94,6 +98,8 @@ class BaseObserver:
 
         for index in indexes:
             scopes.remove(scopes[index])
+
+        return scopes
 
     def get_participants(self, room_name):
         """

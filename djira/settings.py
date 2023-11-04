@@ -7,6 +7,7 @@ from rest_framework.settings import perform_import
 DEFAULT_JIRA_SETTINGS = {
     "MIDDLEWARE_CLASSES": [],
     "SOCKET_INSTANCE": "djira.socket.sio",
+    "SOCKET_MANAGER": "djira.observer.redis_manager.manager",
     "AUTHENTICATION_CLASSES": [],
     "PERMISSION_CLASSES": ["djira.permissions.AllowAny"],
     "DEFAULT_PAGINATION_CLASS": "djira.pagination.PagePagination",

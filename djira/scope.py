@@ -1,16 +1,22 @@
 from datetime import time
-from typing import Any, Dict, Literal
+from typing import Any, Dict
 
 from urllib.parse import urljoin
 
 from django.http import QueryDict
-from django.contrib.auth.models import User, AnonymousUser
-from .models import Realtime
+from django.contrib.auth.models import User
+
+from rest_framework.exceptions import NotFound
+
+from socketio import Server
 
 from .typing import Method
+from .settings import jira_settings
 
 
 class Scope:
+    socket: Server = jira_settings.SOCKET_INSTANCE
+
     def __init__(
         self,
         sid: str,
@@ -29,8 +35,8 @@ class Scope:
         match __name:
             case "GET":
                 return self.query
-            
-        # return None if not define    
+
+        # return None if not define
         return self._raw_data.get(__name)
 
     @property
@@ -82,3 +88,32 @@ class Scope:
             f"{self.environ['wsgi.url_scheme']}://{self.environ['HTTP_HOST']}",
             url,
         )
+
+    def to_json(self):
+        return {
+            "sid": self._sid,
+            "user_id": self._user.pk,
+            "raw_data": self._raw_data,
+            "namespace": self._namespace,
+        }
+
+    @classmethod
+    async def from_json(cls, json: dict):
+        sid = json["sid"]
+        session = await cls.socket.get_session(sid)
+
+        try:
+            return cls(
+                sid=sid,
+                session=session,
+                raw_data=json["raw_data"],
+                namespace=json["namespace"],
+                user=User.objects.get(pk=json["user_id"]),
+            )
+        except User.DoesNotExist as error:
+            raise NotFound(
+                {
+                    "status": "failed",
+                    "message": "can't decode scope, user does not exist",
+                }
+            ) from error
