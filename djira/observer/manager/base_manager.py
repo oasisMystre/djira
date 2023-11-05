@@ -1,15 +1,8 @@
-from time import sleep
-from django.db.models.signals import ModelSignal
-from django.dispatch import Signal, receiver
 from typing import Callable, List, Optional, Tuple
 
 
 class UniqueError(Exception):
     pass
-
-
-base_manager_signal = Signal(use_caching=True)
-
 
 class BaseManager:
     channel_key = "DJIRA_SOCKET_MANAGER"
@@ -24,7 +17,6 @@ class BaseManager:
         """
         ondata listener that trigger all registered listeners
         """
-
         data = payload["data"]
         errors: List[Exception] = []
         filter_data = payload["filter"]
@@ -39,7 +31,7 @@ class BaseManager:
 
         return errors if len(errors) > 0 else None
 
-    def listen(
+    def subscribe(
         self,
         callback: Callable[[dict], None],
         filter: Optional[Callable[[dict], bool]] = None,
@@ -68,16 +60,3 @@ class BaseManager:
             errors += self._on_data(payload) or []
 
         return errors if len(errors) > 0 else None
-
-    def send_data(self, data: dict, filter: dict | None = None):
-        """
-        Send data to all subscribing clients
-        """
-        payload = dict(data=data, filter=filter)
-
-        return base_manager_signal.send(
-            BaseManager,
-            payload=payload,
-            instance=self,
-            created=True,
-        )

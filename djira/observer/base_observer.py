@@ -1,14 +1,17 @@
+import asyncio
 from enum import Enum
 from functools import partial
-from typing import Callable, Dict, Generator, List
+from threading import Thread
+from typing import Callable, Dict, Generator, List, Literal
 
 from rest_framework.exceptions import NotFound
 
 from django.db.models import QuerySet
 
 from djira.scope import Scope
-from djira.observer.manager.redis_manager import RedisManager
 from djira.settings import jira_settings
+
+from .manager import PubSubManager, Manager
 
 
 class Action(Enum):
@@ -28,9 +31,63 @@ class BaseObserver:
         str, List[Scope]
     ] = {}  # all subscribing room scopes, used as context in serializing data
 
+    @classmethod
+    def listen_to_message(cls):
+        if hasattr(cls, "manager"):
+            return
+
+        Manager: PubSubManager = jira_settings.DEFAULT_MANAGER
+
+        if callable(Manager):
+            cls.manager = Manager()
+        else:
+            cls.manager = Manager
+
+        if cls.manager is None:
+            cls.manager = Manager()
+
+        cls.manager.subscribe(
+            partial(cls._on_message, "subscribe"),
+            lambda data: data.get("type") == "subscribe",
+        )
+
+        cls.manager.subscribe(
+            partial(cls._on_message, "unsubscribe"),
+            lambda data: data.get("type") == "unsubscribe",
+        )
+
+    @classmethod
+    def _on_message(
+        cls,
+        type: Literal["subscribe", "unsubscribe"],
+        data: dict,
+    ):
+        async def inner():
+            try:
+                room_name = data["room_name"]
+                encode_scope = data["scope"]
+
+                scope = await Scope.from_json(encode_scope)
+                method = (
+                    cls.subscribe_scope_to_room
+                    if type == "subscribe"
+                    else cls.unsubscribe_scope_from_room
+                )
+                method(scope, room_name)
+            except Exception as e:
+                pass  # no exception should be thrown
+
+        thread = Thread(target=asyncio.run, args=(inner(),))
+        thread.start()
+
     def serialize(self, action: Action, instance: QuerySet, context: dict):
         if hasattr(self, "_serializer"):
-            return self._serializer(self, instance, action, context)
+            return self._serializer(
+                self,
+                instance=instance,
+                action=action,
+                context=context,
+            )
         elif self.serializer_class:
             return self.serializer_class(instance, context=context).data
 
@@ -108,6 +165,20 @@ class BaseObserver:
 
         return self.subscribing_scopes.get(room_name, [])
 
+    def _send_data(
+        self,
+        scope: Scope,
+        room_name: str,
+        type: Literal["subscribe", "unsubscribe"],
+    ):
+        return self.manager.send_data(
+            {
+                "scope": scope.to_json(),
+                "room_name": room_name,
+            },
+            {"type": type},
+        )
+
     def subscribe(self, scope: Scope):
         """
         This should be called to subscribe the current hook.
@@ -117,9 +188,9 @@ class BaseObserver:
             subscribing_rooms = self._subscribing_rooms(scope)
 
             for subscribing_room in subscribing_rooms:
-                return self.subscribe_scope_to_room(scope, subscribing_room)
+                return self._send_data(scope, subscribing_room, "subscribe")
         else:
-            return self.subscribe_scope_to_room(scope, self.model_name)
+            return self._send_data(scope, self.model_name, "subscribe")
 
     def unsubscribe(self, scope: Scope):
         """
@@ -130,9 +201,9 @@ class BaseObserver:
             subscribing_rooms = self._subscribing_rooms(scope)
 
             for subscribing_room in subscribing_rooms:
-                self.unsubscribe_scope_from_room(scope, subscribing_room)
+                return self._send_data(scope, subscribing_room, "unsubscribe")
         else:
-            self.unsubscribe_scope_from_room(scope, self.model_name)
+            return self._send_data(scope, self.model_name, "unsubscribe")
 
     @classmethod
     def disconnect(cls, predicate: Callable[[Scope], bool]):

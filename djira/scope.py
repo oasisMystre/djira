@@ -1,5 +1,8 @@
-from datetime import time
 from typing import Any, Dict
+
+import asyncio
+
+from datetime import time
 
 from urllib.parse import urljoin
 
@@ -9,6 +12,8 @@ from django.contrib.auth.models import User
 from rest_framework.exceptions import NotFound
 
 from socketio import Server
+
+from djira.db import database_sync_to_async
 
 from .typing import Method
 from .settings import jira_settings
@@ -108,7 +113,7 @@ class Scope:
                 session=session,
                 raw_data=json["raw_data"],
                 namespace=json["namespace"],
-                user=User.objects.get(pk=json["user_id"]),
+                user=database_sync_to_async(User.objects.get)(pk=json["user_id"]),
             )
         except User.DoesNotExist as error:
             raise NotFound(

@@ -9,7 +9,7 @@ For javascript/typescript client check [jira](https://github.com/oasisMystre/jir
 Install djira from pip
 
 ```bash
-pip install djira
+pip install drf-sio
 ```
 
 update your `settings.py` config
@@ -21,7 +21,17 @@ INSTALLED_APPS = [
 ]
 ```
 
-> djira is django jira for short
+> drf-sio is django socket io for short
+
+## Features
+
+- [x] Custom features extendable 
+- [x] Support Load balancer by default using pubsub techniques provide `RedisManager` interface by default you can implement yours by extending the `PubSubManager` class
+- [x] Support listening to database changes using django-signals and publish to subscribing clients
+- [x] Django permission extended using the `BasePermission` class with our default precode classes
+- [x] Perform rest actions list, retrieve, update delete using socketio
+- [x] Pagination supported when using our rest-socket-api
+
 
 ## Hooks 
 Hooks are the api interface, which contains the actions methods 
@@ -117,12 +127,8 @@ class UserAPIHook(ModelAPIHook):
         }
 
     # raise exception if try to subscribe from an action that is not a subscription
-    # send a request to this endpoint to subscribe to user_subscriber 
-    """
-    >>> import { subscribe } from "jira";
-    >>> subscribe("users", { namespace: "subscribe_user" }, console.log);
-    """
-    @action(methods=["SUBSCRIPTION"])
+    # send a request to subscribe_user actions to subscribe to user_subscriber 
+    @action(methods=["POST"])
     async def subscribe_user(self, scope: Scope):
         await user_subscriber.subscribe(scope)
 
@@ -149,16 +155,7 @@ User = get_user_model()
 
 
 class UserAPIHook(APIHook):
-    user_observer = model_observer(User)
-
-    @user_observer.serializer
-    def user_serializer(
-        cls: ModelObserver,
-        action: Action,
-        instance: User,
-        context: Dict,
-    ):
-        return dict(id=instance.id, email=instance.email)
+    user_observer = model_observer(User, UserSerializer)()
 
     @user_observer.rooms
     def user_rooms(cls: ModelObserver, action: Action, instance: User):
@@ -180,9 +177,16 @@ class UserAPIHook(APIHook):
 class PublicationAPIHook(APIHook):
     @observer(m2m_changed, Publication.users.through)
     def publication_observer(
-        self: ModelObserver, action: str, **kwargs
+        self: ModelObserver, 
+        action: str, 
+        **kwargs
     ):
-        return self.dispatch(Action.UPDATE, **kwargs)
+        """
+        send event only when action is `post_add`
+        """
+        match action:
+            "post_add":
+                return self.dispatch(Action.UPDATE, **kwargs) 
 
     @publication_observer.serializer
     def publication_serializer(
@@ -275,7 +279,6 @@ DJIRA_SETTINGS = {
 ```
 
 ### AUTHENTICATION_CLASSES
-
 Authentication classes, this is run on every client connection.
 
 Extend from djira `BaseAuthentication` Class to implement your own authentication logic
@@ -287,6 +290,23 @@ DJIRA_SETTINGS = {
     "AUTHENTICATION_CLASSES": ["jira.authentication.TokenAuthentication"],
 }
 ```
+
+### DEFAULT_MANAGER
+This is used to manage subscriptions when using multiple server process like a load balancer.
+When a user subscribe or unsubscribe an event is sent to all processes using our pubsub mechanism.
+
+```py
+#manager.py
+from djira.observer.manager import RedisManager 
+manager = RedisManager.from_url(...)
+
+#settings.py
+DJIRA_SETTINGS = {
+    "DEFAULT_MANAGER": "example.manager.manager"
+}
+```
+
+> This is optional and uses a django signal callback. Note this callback can't be used for a load balancing mechanism
 
 ### PERMISSION_CLASSES
 

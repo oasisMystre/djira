@@ -9,7 +9,7 @@ from rest_framework.serializers import Serializer
 
 from djira.observer.signal_observer import SignalObserver
 
-from .model_observer import ModelObserver
+from .model_observer import ModelObserver, Action
 
 
 def model_observer(
@@ -31,3 +31,6 @@ def observer(
     return model_observer.connect(
         signal, sender if isinstance(sender, (list, tuple)) else [sender]
     )
+
+
+__all__ = ["SignalObserver", "ModelObserver", "Action"]

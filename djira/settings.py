@@ -4,8 +4,11 @@ from django.test.signals import setting_changed
 
 from rest_framework.settings import perform_import
 
+from .typing import T
+
 DEFAULT_JIRA_SETTINGS = {
     "MIDDLEWARE_CLASSES": [],
+    "DEFAULT_MANAGER": "djira.observer.manager.Manager",
     "SOCKET_INSTANCE": "djira.socket.sio",
     "SOCKET_MANAGER": "djira.observer.redis_manager.manager",
     "AUTHENTICATION_CLASSES": [],
@@ -18,6 +21,7 @@ IMPORT_STRINGS = [
     "SOCKET_INSTANCE",
     "PERMISSION_CLASSES",
     "MIDDLEWARE_CLASSES",
+    "DEFAULT_MANAGER",
     "AUTHENTICATION_CLASSES",
     "DEFAULT_PAGINATION_CLASS",
 ]
@@ -56,8 +60,8 @@ class JiraSettings:
     def user_settings(self):
         return self._user_settings
 
-    def __getattr__(self, __name: str):
-        value = self.user_settings[__name]
+    def __getattr__(self, __name: str) -> T:
+        value: T = self.user_settings.get(__name)
 
         if __name in IMPORT_STRINGS:
             return perform_import(value, __name)

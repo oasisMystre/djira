@@ -61,6 +61,7 @@ class APIHook(GenericAPIHook):
                 "requestId": scope.request_id,
                 "data": data,
             },
+            room=room_id,
         )
 
 

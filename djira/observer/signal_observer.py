@@ -38,6 +38,8 @@ class SignalObserver(BaseObserver):
         self.serializer_class = serializer_class
         self.server = server or jira_settings.SOCKET_INSTANCE
 
+        super().__init__()
+
     def connect(self, signal: Signal, senders: Any = None):
         """
         Connect receiver to sender for signal.

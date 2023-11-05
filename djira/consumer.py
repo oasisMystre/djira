@@ -35,6 +35,8 @@ class Consumer:
     def __init__(self, server: Server):
         self.server = server
 
+        BaseObserver.listen_to_message()
+
     def register(self, namespace: str, api_hook: Any):
         setattr(api_hook, "namespace", namespace)
         self._hooks[namespace] = api_hook
@@ -134,13 +136,17 @@ class Consumer:
                         error.get_full_details(),
                         status=error.status_code,
                     )
+
+                    raise error
                 except Http404 as error:
                     await hook.emit("Not found", status.HTTP_404_NOT_FOUND)
-                except:
+                except Exception as error:
                     await hook.emit(
                         "Server error",
                         status.HTTP_500_INTERNAL_SERVER_ERROR,
                     )
+
+                    raise error
 
         @self.server.event
         def disconnect(sid: str):
